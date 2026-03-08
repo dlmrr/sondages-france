@@ -2,10 +2,6 @@ import time
 import logging
 import requests
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 from pathlib import Path
 
@@ -39,24 +35,45 @@ def get_soup(url, retries=3, delay=1.5):
 
 
 def make_driver(headless=True):
-    """Create a Selenium Chrome driver using webdriver-manager."""
+    """Create a Selenium Chrome driver with stealth options."""
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+    from webdriver_manager.chrome import ChromeDriverManager
+
     opts = Options()
     if headless:
         opts.add_argument("--headless=new")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--disable-dev-shm-usage")
+    opts.add_argument("--disable-blink-features=AutomationControlled")
+    opts.add_argument("--window-size=1920,1080")
+    opts.add_argument("--lang=fr-FR")
     opts.add_argument(f"user-agent={HEADERS['User-Agent']}")
+    opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+    opts.add_experimental_option("useAutomationExtension", False)
     service = Service(ChromeDriverManager().install())
-    return webdriver.Chrome(service=service, options=opts)
+    driver = webdriver.Chrome(service=service, options=opts)
+    # Remove webdriver flag from navigator
+    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    })
+    return driver
 
 
-def save_polls(polls, institut, filename=None):
-    """Save a list of (date, subject, link) tuples to CSV."""
+def save_polls(polls, institut, columns=None, filename=None):
+    """Save a list of poll tuples to CSV.
+
+    Default columns: date, subject, link.
+    Pass custom columns list if scraper captures more fields.
+    """
     if not polls:
         logging.warning(f"No polls to save for {institut}")
         return None
-    df = pd.DataFrame(polls, columns=["date", "subject", "link"])
+    columns = columns or ["date", "subject", "link"]
+    df = pd.DataFrame(polls, columns=columns)
     df["institut"] = institut
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
     fname = filename or f"{institut.lower().replace(' ', '_')}_polls.csv"
     path = DATA_DIR / fname
     df.to_csv(path, index=False, encoding="utf-8")

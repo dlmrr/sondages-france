@@ -1,25 +1,26 @@
 """
 OpinionWay scraper.
-URL: https://www.opinion-way.com/fr/sondage-d-opinion/sondages-publies.html
-JS-heavy with pagination. Old pattern used ?start=N (steps of 30).
+URL: https://www.opinion-way.com/fr/publications/page/{N}/
+~417 pages, 9 items per page. Cards with type, title, link.
+No date on listing — extracted from title when possible.
 """
 import logging
+import random
 import re
+import sys
 import time
-from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from .base import make_driver, save_polls
+from .base import get_soup, save_polls
 
 log = logging.getLogger("opinionway")
 
-BASE_URL = "https://www.opinion-way.com/fr/sondage-d-opinion/sondages-publies.html"
+BASE_URL = "https://www.opinion-way.com/fr/publications/page/{page}/"
+FIRST_PAGE_URL = "https://www.opinion-way.com/fr/sondage-d-opinion/sondages-publies.html"
+COLUMNS = ["date", "subject", "type", "link"]
 
 MONTHS = {
-    "janvier": 1, "fevrier": 2, "février": 2, "mars": 3, "avril": 4,
-    "mai": 5, "juin": 6, "juillet": 7, "aout": 8, "août": 8,
-    "septembre": 9, "octobre": 10, "novembre": 11, "decembre": 12, "décembre": 12,
+    "janvier": 1, "février": 2, "fevrier": 2, "mars": 3, "avril": 4,
+    "mai": 5, "juin": 6, "juillet": 7, "août": 8, "aout": 8,
+    "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12, "decembre": 12,
     "january": 1, "february": 2, "march": 3, "april": 4, "may": 5,
     "june": 6, "july": 7, "august": 8, "september": 9, "october": 10,
     "november": 11, "december": 12,
@@ -27,80 +28,81 @@ MONTHS = {
 
 
 def extract_date_from_title(title):
-    """Try to extract a date from the poll title (e.g. '... Mars 2024')."""
+    """Extract date from title like '... - Mars 2026' or '... - Février 2026'."""
     text = title.lower().strip()
     for month_name, month_num in MONTHS.items():
-        match = re.search(rf"{month_name}\s+(\d{{4}})$", text)
+        match = re.search(rf"{month_name}\s+(\d{{4}})", text)
         if match:
             year = match.group(1)
             return f"01/{month_num:02d}/{year}"
+    # Try just a year
+    match = re.search(r"(\d{4})$", text.rstrip())
+    if match:
+        return f"01/01/{match.group(1)}"
     return ""
 
 
-def scrape(max_pages=200):
-    driver = make_driver(headless=True)
+def scrape(max_pages=500):
     polls = []
+    page = 1
+    consecutive_failures = 0
 
-    try:
-        # First try the paginated approach with ?start=N
-        for start in range(0, max_pages * 30, 30):
-            url = f"{BASE_URL}?filter_search=%20&layout=table&show_category=0&start={start}"
+    while page <= max_pages:
+        url = FIRST_PAGE_URL if page == 1 else BASE_URL.format(page=page)
+        soup = get_soup(url)
+
+        if soup is None:
+            consecutive_failures += 1
+            if consecutive_failures >= 3:
+                print(f"  [OPINIONWAY] Stopping after {consecutive_failures} consecutive failures at page {page}")
+                break
+            page += 1
+            continue
+
+        consecutive_failures = 0
+        items = soup.select(".publication--item")
+
+        if not items:
+            print(f"  [OPINIONWAY] No items on page {page}, stopping")
+            break
+
+        for item in items:
             try:
-                driver.get(url)
-                time.sleep(2)
+                link_tag = item.find("a", href=True)
+                if not link_tag:
+                    continue
+                link = link_tag["href"]
 
-                soup = BeautifulSoup(driver.page_source, "lxml")
+                title_tag = item.find(["h3", "h2", "h4"])
+                subject = title_tag.get_text(strip=True) if title_tag else ""
 
-                # Old selector
-                items = soup.find_all("td", class_="edocman-document-title-td")
-                if not items:
-                    # Try alternative selectors
-                    items = soup.select(".publication--item, .document-item, article")
+                type_tag = item.select_one(".publication--type")
+                pub_type = type_tag.get_text(strip=True) if type_tag else ""
 
-                if not items:
-                    # Try finding any links in the main content area
-                    main = soup.find("main") or soup.find("div", id="content") or soup
-                    items = main.find_all("a", href=True)
-                    items = [a for a in items if a.find(["h2", "h3", "h4"]) or len(a.get_text(strip=True)) > 20]
+                date = extract_date_from_title(subject)
 
-                if not items:
-                    log.info(f"No items found at start={start}, stopping")
-                    break
-
-                for item in items:
-                    try:
-                        if item.name == "td":
-                            link_tag = item.find("a", href=True)
-                        elif item.name == "a":
-                            link_tag = item
-                        else:
-                            link_tag = item.find("a", href=True)
-
-                        if not link_tag:
-                            continue
-
-                        href = link_tag["href"]
-                        link = href if href.startswith("http") else "https://www.opinion-way.com" + href
-                        subject = link_tag.get_text(strip=True)
-
-                        # OpinionWay doesn't show dates directly — extract from title
-                        date = extract_date_from_title(subject)
-
-                        if subject and len(subject) > 5:
-                            polls.append((date, subject, link))
-                    except Exception as e:
-                        log.debug(f"Error parsing item: {e}")
-
-                log.info(f"Start {start}: {len(items)} items, {len(polls)} total")
-
+                if subject:
+                    polls.append((date, subject, pub_type, link))
             except Exception as e:
-                log.warning(f"Error at start={start}: {e}")
+                log.debug(f"Error parsing item on page {page}: {e}")
 
-            time.sleep(1.5)
-    finally:
-        driver.quit()
+        print(f"  [OPINIONWAY] Page {page}: {len(items)} items | {len(polls)} total")
+        sys.stdout.flush()
 
-    return save_polls(polls, "OPINION WAY")
+        if page % 10 == 0:
+            save_polls(polls, "OPINION WAY", columns=COLUMNS)
+
+        page += 1
+        # Random delay to avoid detection
+        delay = random.uniform(1.5, 3.5)
+        if page > 1 and (page - 1) % 30 == 0:
+            pause = random.uniform(8, 15)
+            print(f"  [OPINIONWAY] Taking a {pause:.0f}s break...")
+            sys.stdout.flush()
+            time.sleep(pause)
+        time.sleep(delay)
+
+    return save_polls(polls, "OPINION WAY", columns=COLUMNS)
 
 
 if __name__ == "__main__":

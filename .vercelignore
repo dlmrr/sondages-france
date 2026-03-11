@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+scrapers/
+merge.py
+run_all.py
+update.py
+update_local.py
+nlp.py
+task_schedule.xml
+data/embeddings.npy
+data/ifop_checkpoint.json
+data/*_polls.csv
+data/sondages_france.csv

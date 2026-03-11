@@ -34,6 +34,32 @@ const BADGE_COLORS = {
     OPINION:  { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
 };
 
+const THEME_COLORS = [
+    'bg-blue-50 text-blue-700 border-blue-200',
+    'bg-emerald-50 text-emerald-700 border-emerald-200',
+    'bg-violet-50 text-violet-700 border-violet-200',
+    'bg-amber-50 text-amber-700 border-amber-200',
+    'bg-rose-50 text-rose-700 border-rose-200',
+    'bg-cyan-50 text-cyan-700 border-cyan-200',
+    'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+    'bg-lime-50 text-lime-700 border-lime-200',
+    'bg-orange-50 text-orange-700 border-orange-200',
+    'bg-teal-50 text-teal-700 border-teal-200',
+    'bg-indigo-50 text-indigo-700 border-indigo-200',
+    'bg-pink-50 text-pink-700 border-pink-200',
+];
+
+// Consistent color per theme name
+const _themeColorCache = {};
+let _themeColorIdx = 0;
+function themeColor(name) {
+    if (!_themeColorCache[name]) {
+        _themeColorCache[name] = THEME_COLORS[_themeColorIdx % THEME_COLORS.length];
+        _themeColorIdx++;
+    }
+    return _themeColorCache[name];
+}
+
 function badgeFor(name) {
     for (const [key, cls] of Object.entries(BADGE_COLORS)) {
         if (name.includes(key)) return cls;
@@ -47,10 +73,12 @@ function stateToURL() {
     const p = new URLSearchParams();
     const s = $('search').value;
     const i = $('institut').value;
+    const t = $('theme').value;
     const df = $('date-from').value;
     const dt = $('date-to').value;
     if (s) p.set('q', s);
     if (i) p.set('institut', i);
+    if (t) p.set('theme', t);
     if (df) p.set('from', df);
     if (dt) p.set('to', dt);
     if (currentPage > 1) p.set('page', currentPage);
@@ -62,6 +90,7 @@ function stateFromURL() {
     const p = new URLSearchParams(location.search);
     if (p.get('q')) $('search').value = p.get('q');
     if (p.get('institut')) $('institut').value = p.get('institut');
+    if (p.get('theme')) $('theme').value = p.get('theme');
     if (p.get('from')) $('date-from').value = p.get('from');
     if (p.get('to')) $('date-to').value = p.get('to');
     if (p.get('page')) currentPage = parseInt(p.get('page')) || 1;
@@ -97,6 +126,25 @@ async function loadStats() {
         sel.appendChild(opt);
     }
     sel.value = current;
+
+    // Populate theme dropdown
+    if (statsData.themes && statsData.themes.length > 0) {
+        const themeSel = $('theme');
+        const currentTheme = themeSel.value;
+        themeSel.innerHTML = '<option value="">Tous les themes</option>';
+        // Sort themes by count descending
+        const themesSorted = statsData.themes
+            .map(t => [t, statsData.by_theme[t] || 0])
+            .sort((a, b) => b[1] - a[1]);
+        for (const [name, count] of themesSorted) {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = `${name} (${fmtNumber(count)})`;
+            themeSel.appendChild(opt);
+        }
+        themeSel.value = currentTheme;
+        themeSel.closest('select').style.display = '';
+    }
 
     // Stat cards
     renderStats(sorted);
@@ -159,6 +207,7 @@ async function loadPolls(page = 1) {
         per_page: perPage,
         search: $('search').value,
         institut: $('institut').value,
+        theme: $('theme').value,
         date_from: $('date-from').value,
         date_to: $('date-to').value,
         sort_asc: sortAsc ? '1' : '0',
@@ -186,16 +235,31 @@ async function loadPolls(page = 1) {
     } else {
         tbody.innerHTML = data.polls.map(p => {
             const b = badgeFor(p.institut);
+            const themeBadge = p.theme
+                ? `<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer ${themeColor(p.theme)}" onclick="pickTheme('${esc(p.theme)}')">${esc(p.theme)}</span>`
+                : '';
+            const kwsHtml = (p.keywords && p.keywords.length > 0)
+                ? `<div class="flex flex-wrap gap-1 mt-1">${p.keywords.slice(0, 3).map(k =>
+                    `<span class="inline-flex px-1.5 py-0 rounded text-[9px] text-gray-400 bg-gray-50 border border-gray-100 cursor-pointer hover:text-gray-600 hover:border-gray-200 transition" onclick="searchKeyword('${esc(k)}')">${esc(k)}</span>`
+                ).join('')}</div>`
+                : '';
+
             return `
             <tr class="group hover:bg-gray-50/80 transition-colors">
-                <td class="px-5 py-3 text-sm text-gray-400 tabular-nums whitespace-nowrap">${fmtDate(p.date) || '<span class="text-gray-300">\u2014</span>'}</td>
-                <td class="px-5 py-3">
+                <td class="px-5 py-3 text-sm text-gray-400 tabular-nums whitespace-nowrap align-top">${fmtDate(p.date) || '<span class="text-gray-300">\u2014</span>'}</td>
+                <td class="px-5 py-3 align-top">
                     <span class="inline-flex px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${b.bg} ${b.text} ${b.border}">${esc(p.institut)}</span>
                 </td>
                 <td class="px-5 py-3 text-sm text-gray-700">
-                    ${p.link
-                        ? `<a href="${esc(p.link)}" target="_blank" rel="noopener" class="hover:text-accent transition-colors group-hover:underline underline-offset-2 decoration-gray-300">${esc(p.subject)}<span class="inline-block ml-1 opacity-0 group-hover:opacity-40 transition-opacity text-xs">\u2197</span></a>`
-                        : esc(p.subject)}
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="flex-1 min-w-0">
+                            ${p.link
+                                ? `<a href="${esc(p.link)}" target="_blank" rel="noopener" class="hover:text-accent transition-colors group-hover:underline underline-offset-2 decoration-gray-300">${esc(p.subject)}<span class="inline-block ml-1 opacity-0 group-hover:opacity-40 transition-opacity text-xs">\u2197</span></a>`
+                                : esc(p.subject)}
+                        </span>
+                        ${themeBadge}
+                    </div>
+                    ${kwsHtml}
                 </td>
             </tr>`;
         }).join('');
@@ -233,11 +297,13 @@ function updateFilterPills() {
     const tags = [];
     const s = $('search').value;
     const i = $('institut').value;
+    const t = $('theme').value;
     const df = $('date-from').value;
     const dt = $('date-to').value;
 
     if (s) tags.push({ text: `\u00ab ${s} \u00bb`, field: 'search' });
     if (i) tags.push({ text: i, field: 'institut' });
+    if (t) tags.push({ text: `Theme: ${t}`, field: 'theme' });
     if (df) tags.push({ text: `Depuis ${fmtDate(df)}`, field: 'date-from' });
     if (dt) tags.push({ text: `Jusqu'au ${fmtDate(dt)}`, field: 'date-to' });
 
@@ -265,9 +331,21 @@ function pickInstitut(name) {
     loadPolls(1);
 }
 
+function pickTheme(name) {
+    const sel = $('theme');
+    sel.value = name;
+    loadPolls(1);
+}
+
+function searchKeyword(kw) {
+    $('search').value = kw;
+    loadPolls(1);
+}
+
 function resetFilters() {
     $('search').value = '';
     $('institut').value = '';
+    $('theme').value = '';
     $('date-from').value = '';
     $('date-to').value = '';
     loadPolls(1);
@@ -283,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         debounceTimer = setTimeout(() => loadPolls(1), 300);
     });
     $('institut').addEventListener('change', () => loadPolls(1));
+    $('theme').addEventListener('change', () => loadPolls(1));
     $('date-from').addEventListener('change', () => loadPolls(1));
     $('date-to').addEventListener('change', () => loadPolls(1));
     $('per-page').addEventListener('change', () => loadPolls(1));

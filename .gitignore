@@ -5,3 +5,5 @@ __pycache__/
 # Ignore data dir except CSVs (tracked for GitHub Actions updates)
 data/
 !data/*.csv
+
+.vercel

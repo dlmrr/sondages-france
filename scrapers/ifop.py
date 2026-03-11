@@ -98,7 +98,7 @@ def scrape(max_pages=110, resume=True, headless=False):
 
                     if not cards:
                         consecutive_failures += 1
-                        if consecutive_failures >= 3:
+                        if consecutive_failures >= 10:
                             print(f"  [IFOP] {consecutive_failures} consecutive empty pages at page {page}. Stopping.")
                             print(f"  [IFOP] Run again to resume from page {page}.")
                             _save_checkpoint(page, polls)

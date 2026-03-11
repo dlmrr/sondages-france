@@ -2,11 +2,56 @@
 Merge all individual institute CSV files into one unified dataset.
 For IPSOS, Harris, and IFOP: combines old (pre-2022) and new scrapes, deduplicating.
 """
+import re
 import pandas as pd
 from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 OLD_DIR = Path(__file__).resolve().parent.parent / "old project"
+
+
+def normalize_date(val):
+    """Normalize a date string to YYYY-MM-DD. Handles:
+    - ISO datetime: 2025-09-22T07:00:12+00:00
+    - ISO date: 2026-03-07
+    - DD/MM/YYYY: 27/02/2026
+    - DD.MM.YY: 23.03.22
+    - DD.MM.YYYY: 23.03.2022
+    """
+    if pd.isna(val):
+        return ""
+    s = str(val).strip()
+    if not s:
+        return ""
+
+    # ISO datetime with T
+    if "T" in s:
+        s = s.split("T")[0]
+
+    # Already YYYY-MM-DD
+    m = re.match(r"^(\d{4})-(\d{1,2})-(\d{1,2})$", s)
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+
+    # DD/MM/YYYY
+    m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", s)
+    if m:
+        return f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+
+    # DD.MM.YY or DD.MM.YYYY
+    m = re.match(r"^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$", s)
+    if m:
+        y = m.group(3)
+        if len(y) == 2:
+            y = "20" + y if int(y) < 50 else "19" + y
+        return f"{y}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+
+    # Fallback: try pandas
+    try:
+        parsed = pd.to_datetime(s, dayfirst=True)
+        return parsed.strftime("%Y-%m-%d")
+    except Exception:
+        return s
 
 
 def _merge_old_new(old_file, new_df, institut, date_col="date"):
@@ -86,6 +131,17 @@ def merge():
 
     final = pd.concat(all_dfs, ignore_index=True)
     final = final[["date", "institut", "subject", "link"]]
+
+    # Normalize all dates to YYYY-MM-DD
+    print("\n  Normalizing dates...")
+    before_empty = (final["date"].isna() | (final["date"].astype(str).str.strip() == "")).sum()
+    final["date"] = final["date"].apply(normalize_date)
+    after_empty = (final["date"] == "").sum()
+    print(f"    Dates missing: {before_empty} -> {after_empty}")
+
+    # Sort by date descending
+    final = final.sort_values("date", ascending=False, na_position="last", key=lambda x: x.str.strip())
+
     out = DATA_DIR / "sondages_france.csv"
     final.to_csv(out, index=False, encoding="utf-8")
 

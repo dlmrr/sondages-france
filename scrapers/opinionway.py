@@ -9,7 +9,7 @@ import random
 import re
 import sys
 import time
-from .base import get_soup, save_polls
+from .base import get_soup, save_polls, load_existing_links, append_polls
 
 log = logging.getLogger("opinionway")
 
@@ -103,6 +103,66 @@ def scrape(max_pages=500):
         time.sleep(delay)
 
     return save_polls(polls, "OPINION WAY", columns=COLUMNS)
+
+
+def update(max_pages=10):
+    """Incremental update: fetch only new polls."""
+    known_links = load_existing_links("OPINION WAY")
+    if not known_links:
+        print("  [OPINIONWAY] No existing data, running full scrape")
+        return scrape()
+
+    new_polls = []
+    page = 1
+    known_streak = 0
+
+    while page <= max_pages:
+        url = FIRST_PAGE_URL if page == 1 else BASE_URL.format(page=page)
+        soup = get_soup(url)
+        if soup is None:
+            break
+
+        items = soup.select(".publication--item")
+        if not items:
+            break
+
+        page_new = 0
+        for item in items:
+            try:
+                link_tag = item.find("a", href=True)
+                if not link_tag:
+                    continue
+                link = link_tag["href"]
+
+                if link in known_links:
+                    known_streak += 1
+                    if known_streak >= 3:
+                        print(f"  [OPINIONWAY] Found 3 known polls in a row, stopping")
+                        added = append_polls(new_polls, "OPINION WAY", columns=COLUMNS)
+                        print(f"  [OPINIONWAY] Added {added} new polls")
+                        return added
+                    continue
+
+                known_streak = 0
+                title_tag = item.find(["h3", "h2", "h4"])
+                subject = title_tag.get_text(strip=True) if title_tag else ""
+                type_tag = item.select_one(".publication--type")
+                pub_type = type_tag.get_text(strip=True) if type_tag else ""
+                date = extract_date_from_title(subject)
+                if subject:
+                    new_polls.append((date, subject, pub_type, link))
+                    page_new += 1
+            except Exception as e:
+                log.debug(f"Error parsing item: {e}")
+
+        print(f"  [OPINIONWAY] Page {page}: {page_new} new | {len(new_polls)} total new")
+        sys.stdout.flush()
+        page += 1
+        time.sleep(random.uniform(1.5, 3.5))
+
+    added = append_polls(new_polls, "OPINION WAY", columns=COLUMNS)
+    print(f"  [OPINIONWAY] Added {added} new polls")
+    return added
 
 
 if __name__ == "__main__":

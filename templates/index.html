@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sondages France</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        accent: { DEFAULT: '#1e3a5f', light: '#2d5f8a', dark: '#152a45' },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 relative">
+        <div class="max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
+            <div>
+                <h1 class="font-serif text-2xl font-bold text-accent tracking-tight">Sondages France</h1>
+                <p class="text-sm text-gray-400 mt-0.5" id="header-stats">Chargement...</p>
+            </div>
+            <div id="year-chart" class="w-full sm:w-72 h-24 mt-2 sm:mt-0"></div>
+        </div>
+        <div class="tricolore-bar"></div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-6 space-y-5">
+
+        <!-- Stats grid -->
+        <div id="stats-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-2.5">
+            <!-- Filled by JS -->
+            <div class="bg-white rounded-xl border border-gray-100 p-4"><div class="skeleton h-3 w-12 rounded mb-2"></div><div class="skeleton h-6 w-10 rounded"></div></div>
+            <div class="bg-white rounded-xl border border-gray-100 p-4"><div class="skeleton h-3 w-12 rounded mb-2"></div><div class="skeleton h-6 w-10 rounded"></div></div>
+            <div class="bg-white rounded-xl border border-gray-100 p-4"><div class="skeleton h-3 w-12 rounded mb-2"></div><div class="skeleton h-6 w-10 rounded"></div></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-2.5 items-stretch">
+            <!-- Search -->
+            <div class="relative flex-1 min-w-[220px]">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/>
+                </svg>
+                <input type="text" id="search"
+                    class="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/10 transition"
+                    placeholder="Rechercher un sondage...  ( / )">
+            </div>
+
+            <!-- Institut -->
+            <select id="institut"
+                class="px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/10 cursor-pointer transition appearance-none pr-8 bg-no-repeat bg-[right_0.6rem_center] bg-[length:16px]"
+                style="background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22%239ca3af%22><path fill-rule=%22evenodd%22 d=%22M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z%22 clip-rule=%22evenodd%22/></svg>');">
+                <option value="">Tous les instituts</option>
+            </select>
+
+            <!-- Date from -->
+            <input type="date" id="date-from" title="Depuis"
+                class="px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/10 transition w-[140px]">
+
+            <!-- Date to -->
+            <input type="date" id="date-to" title="Jusqu'au"
+                class="px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/10 transition w-[140px]">
+
+            <!-- Reset -->
+            <button onclick="resetFilters()"
+                class="px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 transition font-medium">
+                Effacer
+            </button>
+        </div>
+
+        <!-- Active filter pills -->
+        <div id="filter-pills" class="flex flex-wrap gap-2 empty:hidden"></div>
+
+        <!-- Table -->
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50/80">
+                            <th class="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400 w-[110px] cursor-pointer select-none hover:text-gray-600 transition-colors" onclick="toggleSort()">
+                                Date <span id="sort-icon" class="text-accent/60">&darr;</span>
+                            </th>
+                            <th class="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400 w-[160px]">Institut</th>
+                            <th class="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">Sondage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="polls-body" class="divide-y divide-gray-100">
+                        <tr><td colspan="3" class="px-5 py-12 text-center text-gray-400 text-sm">Chargement...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div id="table-footer" class="hidden border-t border-gray-100 bg-gray-50/50 px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+                <span class="text-xs text-gray-400 tabular-nums" id="page-info"></span>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-gray-400">Par page</label>
+                        <select id="per-page"
+                            class="px-2 py-1 bg-white border border-gray-200 rounded text-xs text-gray-600 cursor-pointer focus:outline-none">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-1" id="pager"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

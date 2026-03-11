@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Daily incremental update of French polling data</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-03-09T09:00:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+  </Triggers>
+  <Settings>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+  </Settings>
+  <Actions>
+    <Exec>
+      <Command>C:\Users\richa\AppData\Local\Programs\Python\Python314\python.exe</Command>
+      <Arguments>-u update_local.py</Arguments>
+      <WorkingDirectory>C:\Users\richa\Desktop\scraping sondages\scraping</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

@@ -61,6 +61,47 @@ def make_driver(headless=True):
     return driver
 
 
+def _csv_path(institut, filename=None):
+    """Get the CSV path for an institute."""
+    fname = filename or f"{institut.lower().replace(' ', '_')}_polls.csv"
+    return DATA_DIR / fname
+
+
+def load_existing_links(institut, filename=None):
+    """Load the set of known links for an institute."""
+    path = _csv_path(institut, filename)
+    if not path.exists():
+        return set()
+    df = pd.read_csv(path)
+    return set(df["link"].dropna().tolist())
+
+
+def append_polls(new_polls, institut, columns=None, filename=None):
+    """Append new polls to existing CSV, deduplicating by link."""
+    columns = columns or ["date", "subject", "link"]
+    if not new_polls:
+        logging.info(f"No new polls for {institut}")
+        return 0
+    new_df = pd.DataFrame(new_polls, columns=columns)
+    new_df["institut"] = institut
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    path = _csv_path(institut, filename)
+
+    if path.exists():
+        existing = pd.read_csv(path)
+        before = len(existing)
+        combined = pd.concat([existing, new_df], ignore_index=True)
+        combined = combined.drop_duplicates(subset=["link"], keep="last")
+        added = len(combined) - before
+    else:
+        combined = new_df
+        added = len(new_df)
+
+    combined.to_csv(path, index=False, encoding="utf-8")
+    logging.info(f"Added {added} new polls for {institut} (total: {len(combined)})")
+    return added
+
+
 def save_polls(polls, institut, columns=None, filename=None):
     """Save a list of poll tuples to CSV.
 

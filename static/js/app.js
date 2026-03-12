@@ -238,11 +238,6 @@ async function loadPolls(page = 1) {
             const themeBadge = p.theme
                 ? `<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer ${themeColor(p.theme)}" onclick="pickTheme('${esc(p.theme)}')">${esc(p.theme)}</span>`
                 : '';
-            const kwsHtml = (p.keywords && p.keywords.length > 0)
-                ? `<div class="flex flex-wrap gap-1 mt-1">${p.keywords.slice(0, 3).map(k =>
-                    `<span class="inline-flex px-1.5 py-0 rounded text-[9px] text-gray-400 bg-gray-50 border border-gray-100 cursor-pointer hover:text-gray-600 hover:border-gray-200 transition" onclick="searchKeyword('${esc(k)}')">${esc(k)}</span>`
-                ).join('')}</div>`
-                : '';
 
             return `
             <tr class="group hover:bg-gray-50/80 transition-colors">
@@ -259,7 +254,6 @@ async function loadPolls(page = 1) {
                         </span>
                         ${themeBadge}
                     </div>
-                    ${kwsHtml}
                 </td>
             </tr>`;
         }).join('');
@@ -334,11 +328,6 @@ function pickInstitut(name) {
 function pickTheme(name) {
     const sel = $('theme');
     sel.value = name;
-    loadPolls(1);
-}
-
-function searchKeyword(kw) {
-    $('search').value = kw;
     loadPolls(1);
 }
 

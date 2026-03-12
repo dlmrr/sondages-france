@@ -2,9 +2,11 @@
 Local update: runs all scrapers including Selenium ones non-headless.
 Designed to run on PC startup via Windows Task Scheduler.
 """
+import subprocess
 import sys
 import time
 import traceback
+from pathlib import Path
 
 from scrapers import elabe, bva, csa, ipsos, opinionway, harris, odoxa, ifop
 from merge import merge
@@ -59,6 +61,42 @@ def main():
     except Exception:
         print("  MERGE FAILED:")
         traceback.print_exc()
+
+    # Re-run NLP to update enriched CSV
+    print("\n--- NLP ENRICHMENT ---")
+    sys.stdout.flush()
+    try:
+        from nlp import run_pipeline
+        run_pipeline()
+    except Exception:
+        print("  NLP FAILED:")
+        traceback.print_exc()
+
+    # Push to GitHub (triggers Vercel redeploy)
+    print("\n--- GIT PUSH ---")
+    sys.stdout.flush()
+    try:
+        repo_dir = Path(__file__).resolve().parent
+        git = lambda *args: subprocess.run(
+            ["git"] + list(args),
+            cwd=repo_dir, capture_output=True, text=True, timeout=60,
+        )
+        git("add", "data/sondages_france.csv", "data/sondages_enriched.csv", "data/themes.json")
+        status = git("diff", "--cached", "--stat")
+        if status.stdout.strip():
+            today = time.strftime("%Y-%m-%d")
+            git("commit", "-m", f"Daily data update {today}")
+            push = git("push")
+            if push.returncode == 0:
+                print("  Pushed to GitHub successfully")
+            else:
+                print(f"  Push failed: {push.stderr}")
+        else:
+            print("  No data changes to push")
+    except Exception:
+        print("  GIT PUSH FAILED:")
+        traceback.print_exc()
+    sys.stdout.flush()
 
     print("\n" + "=" * 50)
     print("  RESULTS")

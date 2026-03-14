@@ -242,11 +242,11 @@ async function loadPolls(page = 1) {
 
             return `
             <tr class="group hover:bg-gray-50/80 transition-colors">
-                <td class="hidden sm:table-cell px-3 sm:px-5 py-3 text-sm text-gray-400 tabular-nums whitespace-nowrap align-top">${fmtDate(p.date) || '<span class="text-gray-300">\u2014</span>'}</td>
+                <td class="hidden sm:table-cell px-3 sm:px-5 py-3 sm:text-base text-sm text-gray-400 tabular-nums whitespace-nowrap align-top">${fmtDate(p.date) || '<span class="text-gray-300">\u2014</span>'}</td>
                 <td class="hidden md:table-cell px-3 sm:px-5 py-3 align-top">
-                    <span class="inline-flex px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${b.bg} ${b.text} ${b.border}">${esc(p.institut)}</span>
+                    <span class="inline-flex px-2.5 py-0.5 rounded-md text-xs font-semibold border ${b.bg} ${b.text} ${b.border}">${esc(p.institut)}</span>
                 </td>
-                <td class="px-3 sm:px-5 py-3 text-sm text-gray-700">
+                <td class="px-3 sm:px-5 py-3 text-sm sm:text-base text-gray-700">
                     <div class="flex items-start gap-2 flex-wrap">
                         <span class="flex-1 min-w-0">
                             ${p.link

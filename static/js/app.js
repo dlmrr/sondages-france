@@ -157,18 +157,18 @@ async function loadStats() {
 function renderStats(sorted) {
     const grid = $('stats-grid');
     grid.innerHTML = `
-        <div class="bg-accent rounded-xl p-4 sm:p-5 text-white cursor-pointer hover:bg-accent-dark transition-colors"
+        <div class="bg-accent rounded-lg p-2.5 sm:p-3 text-white cursor-pointer hover:bg-accent-dark transition-colors"
              onclick="resetFilters()">
-            <div class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white/60">Total</div>
-            <div class="text-2xl sm:text-3xl font-extrabold mt-0.5 sm:mt-1 tracking-tight">${fmtNumber(statsData.total)}</div>
+            <div class="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-white/60">Total</div>
+            <div class="text-base sm:text-xl font-extrabold mt-0.5 tracking-tight">${fmtNumber(statsData.total)}</div>
         </div>
     ` + sorted.map(([name, count]) => {
         const b = badgeFor(name);
         return `
-        <div class="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
+        <div class="bg-white rounded-lg border border-gray-100 p-2.5 sm:p-3 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
              onclick="pickInstitut('${esc(name)}')">
-            <div class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-gray-500 truncate">${esc(name)}</div>
-            <div class="text-lg sm:text-xl font-bold mt-0.5 text-gray-800">${fmtNumber(count)}</div>
+            <div class="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-gray-500 truncate">${esc(name)}</div>
+            <div class="text-base sm:text-xl font-bold mt-0.5 text-gray-800">${fmtNumber(count)}</div>
         </div>`;
     }).join('');
 }

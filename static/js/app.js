@@ -156,18 +156,18 @@ async function loadStats() {
 function renderStats(sorted) {
     const grid = $('stats-grid');
     grid.innerHTML = `
-        <div class="col-span-full sm:col-span-1 bg-accent rounded-xl p-5 text-white cursor-pointer hover:bg-accent-dark transition-colors"
+        <div class="bg-accent rounded-xl p-4 sm:p-5 text-white cursor-pointer hover:bg-accent-dark transition-colors"
              onclick="resetFilters()">
-            <div class="text-xs font-semibold uppercase tracking-wider text-white/60">Total</div>
-            <div class="text-3xl font-extrabold mt-1 tracking-tight">${fmtNumber(statsData.total)}</div>
+            <div class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white/60">Total</div>
+            <div class="text-2xl sm:text-3xl font-extrabold mt-0.5 sm:mt-1 tracking-tight">${fmtNumber(statsData.total)}</div>
         </div>
     ` + sorted.map(([name, count]) => {
         const b = badgeFor(name);
         return `
-        <div class="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
+        <div class="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
              onclick="pickInstitut('${esc(name)}')">
-            <div class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-gray-500">${esc(name)}</div>
-            <div class="text-xl font-bold mt-0.5 text-gray-800">${fmtNumber(count)}</div>
+            <div class="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-gray-500 truncate">${esc(name)}</div>
+            <div class="text-lg sm:text-xl font-bold mt-0.5 text-gray-800">${fmtNumber(count)}</div>
         </div>`;
     }).join('');
 }
@@ -226,8 +226,8 @@ async function loadPolls(page = 1) {
     if (data.polls.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="3" class="px-5 py-16 text-center">
-                    <div class="text-gray-300 text-4xl mb-3">&#128269;</div>
+                <td colspan="3" class="px-3 sm:px-5 py-12 sm:py-16 text-center">
+                    <div class="text-gray-300 text-3xl sm:text-4xl mb-2 sm:mb-3">&#128269;</div>
                     <p class="text-gray-400 text-sm">Aucun sondage trouv\u00e9</p>
                 </td>
             </tr>`;
@@ -241,18 +241,22 @@ async function loadPolls(page = 1) {
 
             return `
             <tr class="group hover:bg-gray-50/80 transition-colors">
-                <td class="px-5 py-3 text-sm text-gray-400 tabular-nums whitespace-nowrap align-top">${fmtDate(p.date) || '<span class="text-gray-300">\u2014</span>'}</td>
-                <td class="px-5 py-3 align-top">
+                <td class="hidden sm:table-cell px-3 sm:px-5 py-3 text-sm text-gray-400 tabular-nums whitespace-nowrap align-top">${fmtDate(p.date) || '<span class="text-gray-300">\u2014</span>'}</td>
+                <td class="hidden md:table-cell px-3 sm:px-5 py-3 align-top">
                     <span class="inline-flex px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${b.bg} ${b.text} ${b.border}">${esc(p.institut)}</span>
                 </td>
-                <td class="px-5 py-3 text-sm text-gray-700">
-                    <div class="flex items-center gap-2 flex-wrap">
+                <td class="px-3 sm:px-5 py-3 text-sm text-gray-700">
+                    <div class="flex items-start gap-2 flex-wrap">
                         <span class="flex-1 min-w-0">
                             ${p.link
                                 ? `<a href="${esc(p.link)}" target="_blank" rel="noopener" class="hover:text-accent transition-colors group-hover:underline underline-offset-2 decoration-gray-300">${esc(p.subject)}<span class="inline-block ml-1 opacity-0 group-hover:opacity-40 transition-opacity text-xs">\u2197</span></a>`
                                 : esc(p.subject)}
                         </span>
                         ${themeBadge}
+                    </div>
+                    <div class="flex items-center gap-2 mt-1.5 md:hidden">
+                        <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold border ${b.bg} ${b.text} ${b.border}">${esc(p.institut)}</span>
+                        <span class="text-xs text-gray-400 tabular-nums sm:hidden">${fmtDate(p.date) || ''}</span>
                     </div>
                 </td>
             </tr>`;

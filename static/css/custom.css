@@ -48,6 +48,13 @@
     cursor: default;
 }
 
+/* Mobile: ensure date inputs don't overflow */
+@media (max-width: 639px) {
+    input[type="date"] {
+        min-width: 0;
+    }
+}
+
 /* Smooth transitions */
 tbody tr {
     animation: fadeRow 0.2s ease;

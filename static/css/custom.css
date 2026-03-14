@@ -48,10 +48,16 @@
     cursor: default;
 }
 
-/* Mobile: ensure date inputs don't overflow */
+/* Mobile: extra filters toggle */
 @media (max-width: 639px) {
-    input[type="date"] {
-        min-width: 0;
+    #extra-filters.hidden {
+        display: none !important;
+    }
+    #extra-filters:not(.hidden) {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 0.5rem;
     }
 }
 

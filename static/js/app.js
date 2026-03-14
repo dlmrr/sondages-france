@@ -32,6 +32,7 @@ const BADGE_COLORS = {
     CSA:      { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
     HARRIS:   { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
     OPINION:  { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
+    CLUSTER:  { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
 };
 
 const THEME_COLORS = [

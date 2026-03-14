@@ -8,7 +8,7 @@ import time
 import traceback
 from pathlib import Path
 
-from scrapers import elabe, bva, csa, ipsos, opinionway, harris, odoxa, ifop
+from scrapers import elabe, bva, csa, ipsos, opinionway, harris, odoxa, ifop, cluster17
 from merge import merge
 
 SCRAPERS = [
@@ -19,6 +19,7 @@ SCRAPERS = [
     ("OPINION WAY", opinionway),
     ("HARRIS", harris),
     ("ODOXA", odoxa),
+    ("CLUSTER17", cluster17),
 ]
 
 

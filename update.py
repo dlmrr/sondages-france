@@ -6,7 +6,7 @@ import sys
 import time
 import traceback
 
-from scrapers import elabe, bva, csa, ipsos, opinionway, harris
+from scrapers import elabe, bva, csa, ipsos, opinionway, harris, cluster17
 
 # Selenium-based scrapers — may fail in CI
 SELENIUM_SCRAPERS = []
@@ -29,6 +29,7 @@ SCRAPERS = [
     ("IPSOS", ipsos),
     ("OPINION WAY", opinionway),
     ("HARRIS", harris),
+    ("CLUSTER17", cluster17),
 ]
 
 

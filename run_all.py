@@ -2,7 +2,7 @@
 import sys
 import time
 import traceback
-from scrapers import ifop, elabe, bva, odoxa, ipsos, opinionway, harris, csa
+from scrapers import ifop, elabe, bva, odoxa, ipsos, opinionway, harris, csa, cluster17
 from merge import merge
 
 SCRAPERS = [
@@ -14,6 +14,7 @@ SCRAPERS = [
     ("OpinionWay", opinionway.scrape),
     ("IPSOS", ipsos.scrape),
     ("ODOXA", odoxa.scrape),
+    ("CLUSTER17", cluster17.scrape),
 ]
 
 
